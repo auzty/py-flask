@@ -3,6 +3,7 @@ from flask import Flask, request, jsonify
 from flask_restful import Resource, Api, reqparse
 from werkzeug.utils import secure_filename
 from os.path import join, dirname, realpath
+from os import environ
 import time,glob
 import pandas as pd
 import numpy as np
@@ -26,11 +27,25 @@ def index():
 @app.route("/compute", methods=['POST'])
 def uploadFiles():
 
-    worker = 2
+
+    workerSetting = 0
+    delay = 0
+
+    # get from env
+    if environ.get('WORKER') is not None:
+        workerSetting = int(environ.get('WORKER'))
+    else:
+        workerSetting = 1
+
+    if environ.get('DELAY') is not None:
+        delay = int(environ.get('WORKER'))
+    else:
+        delay = 5
+
+    worker = workerSetting
     currentPID = ""
 
     workerCounter = len(glob.glob1('./tmp',"*.pid"))
-    print("### -> ",workerCounter)
 
     if workerCounter < worker:
         # create pid and process
@@ -40,14 +55,12 @@ def uploadFiles():
         f.close()
 
         #simulate long query (5 seconds wait)
-        time.sleep(5)
+        time.sleep(delay)
             
         if 'file' not in request.files:
             return {'msg': 'File Not Found'},400
 
         file = request.files['file']
-
-        print(request.files['file'])
 
         if file and allowed_file(file.filename):
             #filename = secure_filename(file.filename)
@@ -72,13 +85,11 @@ def uploadFiles():
             # return data to client
             return {'status': "ok","average": result}, 200
     else:
-        print("WORKER FULL YOU MUST RETRY")
         return {'status': "error","msg":'Worker are Busy, please try again later'}, 400
 
 def processCSV(path):
     #csv = np.genfromtxt(path, delimiter=',' , names=True)
     df = pd.read_csv(path,sep=',')
-    print(df)
     numpyresult = df.to_numpy()
     return np.average(numpyresult[:,1])
 
