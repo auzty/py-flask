@@ -94,4 +94,4 @@ def processCSV(path):
     return np.average(numpyresult[:,1])
 
 if __name__ == '__main__':
-    app.run()  # run our Flask app
+    app.run(debug=True,host='0.0.0.0')  # run our Flask app
